@@ -162,23 +162,24 @@ public class GradientView: UIView {
 		let size = bounds.size
 
         // Gradient
-		if let gradient = gradient {
+        if let gradient = gradient {
             let options: CGGradientDrawingOptions = [.DrawsAfterEndLocation]
-
-			if mode == .Linear {
-				let startPoint = CGPointZero
-				let endPoint = direction == .Vertical ? CGPoint(x: 0, y: size.height) : CGPoint(x: size.width, y: 0)
-				CGContextDrawLinearGradient(context, gradient, startPoint, endPoint, options)
-			} else {
+            
+            switch mode {
+            case .Linear:
+                let startPoint = CGPointZero
+                let endPoint = direction == .Vertical ? CGPoint(x: 0, y: size.height) : CGPoint(x: size.width, y: 0)
+                CGContextDrawLinearGradient(context, gradient, startPoint, endPoint, options)
+            case .Radial:
                 let startOrigin = radialGradientStartAttributes.origin ?? CGPoint(x: 0.5, y: 0.5)
                 let startRadiusRatio = radialGradientStartAttributes.radius ?? 0.0
-
+                
                 let startCenter = CGPoint(x: bounds.width * startOrigin.x, y: bounds.height * startOrigin.y)
                 let startRadius: CGFloat = startRadiusRatio * min(bounds.width, bounds.height) / 2
-
+                
                 var endCenter = startCenter // set this to be the same as the start by default
                 var endRadius = min(size.width, size.height) / 2
-
+                
                 if let radialEndAttributes = radialGradientEndAttributes {
                     if let endOrigin = radialEndAttributes.origin {
                         endCenter = CGPoint(x: bounds.width * endOrigin.x, y: bounds.height * endOrigin.y)
@@ -189,8 +190,8 @@ public class GradientView: UIView {
                 }
                 
                 CGContextDrawRadialGradient(context, gradient, startCenter, startRadius, endCenter, endRadius, options)
-			}
-		}
+            }
+        }
 
 		let screen: UIScreen = window?.screen ?? UIScreen.mainScreen()
 		let borderWidth: CGFloat = drawsThinBorders ? 1.0 / screen.scale : 1.0
