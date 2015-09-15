@@ -11,22 +11,23 @@ import GradientView
 
 class ViewController: UIViewController {
 	
-	@IBOutlet var gradientView: GradientView!
-                            
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		
-        gradientView.mode = .Radial
-//        gradientView.radialGradientStartAttributes = GradientView.RadialGradientAttributes(origin: CGPoint(x: 0.25, y: 0.75), radius: nil)
-//        gradientView.radialGradientEndAttributes = GradientView.RadialGradientAttributes(origin: CGPoint(x: 0.75, y: 0.25), radius: nil)
-		gradientView.colors = [
-//			UIColor(red: 0, green: 0, blue: 1, alpha: 1),
-			UIColor.whiteColor(),
-			UIColor(red: 0, green: 0, blue: 0.5, alpha: 1)
-		]
+        let colors = [
+            UIColor.yellowColor(),
+            UIColor.purpleColor()
+        ]
+
+        let linearGradientView = LinearGradientView(frame: CGRect(x: 20, y: 80, width: view.bounds.width - 40, height: 150))
+		linearGradientView.colors = colors
+        linearGradientView.style = .Vertical
+        view.addSubview(linearGradientView)
 		
-		// You can configure the locations as well
-//		gradientView.locations = [0.4, 0.6]
+        let radialGradientView = RadialGradientView(frame: CGRect(x: linearGradientView.frame.origin.x, y: CGRectGetMaxY(linearGradientView.frame) + 20, width: linearGradientView.bounds.width, height: linearGradientView.bounds.height))
+        radialGradientView.colors = colors
+        radialGradientView.style = .Fill
+        view.addSubview(radialGradientView)
 	}
 	
 	@IBAction func showAlert(sender: UIButton) {

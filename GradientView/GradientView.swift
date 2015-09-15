@@ -8,42 +8,91 @@
 
 import UIKit
 
-/// Simple view for drawing gradients and borders.
-public class GradientView: UIView {
-
-	// MARK: - Types
-
-	/// The mode of the gradient.
-	public enum Type {
-		/// A linear gradient.
-		case Linear
-
-		/// A radial gradient.
-		case Radial
-	}
-
-
-	/// The direction of the gradient.
-	public enum Direction {
-		/// The gradient is vertical.
-		case Vertical
-
-		/// The gradient is horizontal
-		case Horizontal
-	}
-
-    // Structure that conveys the attributes of a radial gradient at its start or end points
-    public struct RadialGradientAttributes {
-        /// The relative positioning of the center point along the view's respective axes
-        public let origin: CGPoint?
-        /// The size of the gradient relative to the view's bounds
-        public let radius: CGFloat?
+public class LinearGradientView: GradientView {
+    
+    /// The direction of the gradient.
+    public enum LinearStyle {
+        /// The gradient is vertical.
+        case Vertical
         
-        public init(origin: CGPoint?, radius: CGFloat?) {
-            self.origin = origin
-            self.radius = radius
+        /// The gradient is horizontal
+        case Horizontal
+        
+        /**
+        The gradient attributes determined by the user
+        */
+        case Custom(CGPoint, CGPoint)
+        
+        private func points(size: CGSize) -> (CGPoint, CGPoint) {
+            switch self {
+            case .Vertical:
+                return (CGPointZero, CGPoint(x: 0, y: size.height))
+            case .Horizontal:
+                return (CGPointZero, CGPoint(x: size.width, y: 0))
+            case .Custom(let start, let end):
+                return (start, end)
+            }
         }
     }
+    
+    /// The direction of the gradient. Only valid for the `Mode.Linear` mode. The default is `.Vertical`.
+    public var style: LinearStyle = .Vertical {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    override public func drawRect(rect: CGRect) {
+        if let gradient = gradient {
+            let context = UIGraphicsGetCurrentContext()
+            let options: CGGradientDrawingOptions = [.DrawsAfterEndLocation]
+            let (startPoint, endPoint) = style.points(bounds.size)
+            
+            CGContextDrawLinearGradient(context, gradient, startPoint, endPoint, options)
+        }
+    }
+}
+
+public class RadialGradientView: GradientView {
+    
+    public enum RadialStyle {
+        case Fit
+        case Fill
+        case Custom(CGPoint, CGFloat, CGPoint, CGFloat)
+        
+        private func points(size: CGSize) -> (CGPoint, CGFloat, CGPoint, CGFloat) {
+            switch self {
+            case .Fit:
+                return (CGPoint(x: size.width / 2, y: size.height / 2), 0, CGPoint(x: size.width / 2, y: size.height / 2), min(size.width, size.height) / 2)
+            case .Fill:
+                return (CGPoint(x: size.width / 2, y: size.height / 2), 0, CGPoint(x: size.width / 2, y: size.height / 2), max(size.width, size.height) / 2)
+            case .Custom(let startPoint, let startRadius, let endPoint, let endRadius):
+                return (startPoint, startRadius, endPoint, endRadius)
+            }
+        }
+    }
+    
+    public var style: RadialStyle = .Fit {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    override public func drawRect(rect: CGRect) {
+        if let gradient = gradient {
+            let context = UIGraphicsGetCurrentContext()
+            let options: CGGradientDrawingOptions = [.DrawsBeforeStartLocation, .DrawsAfterEndLocation]
+            let (startPoint, startRadius, endPoint, endRadius) = style.points(bounds.size)
+            
+            CGContextDrawRadialGradient(context, gradient, startPoint, startRadius, endPoint, endRadius, options)
+        }
+    }
+
+}
+
+
+/// Simple view for drawing gradients
+public class GradientView: UIView {
 
 	// MARK: - Properties
 
@@ -82,147 +131,8 @@ public class GradientView: UIView {
 			updateGradient()
 		}
 	}
-
-	/// The mode of the gradient. The default is `.Linear`.
-	public var mode: Type = .Linear {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
-
-	/// The direction of the gradient. Only valid for the `Mode.Linear` mode. The default is `.Vertical`.
-	public var direction: Direction = .Vertical {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
     
-    /// The attibutes of the gradient at its start (inner). Only valid for the `Mode.Radial` mode.
-    ///
-    /// `origin` define the relative positioning of the start center point along the view's respective axes
-    /// `radius` determines the size of the gradient relative to the view's bounds
-    public var radialGradientStartAttributes: RadialGradientAttributes = RadialGradientAttributes(origin: CGPoint(x: 0.5, y: 0.5), radius: 0.0) {
-        didSet {
-            setNeedsDisplay()
-        }
-    }
-    
-    /// The attibutes of the gradient at its end (outer). Only valid for the `Mode.Radial` mode.
-    ///
-    /// `origin` define the relative positioning of the end center point along the view's respective axes
-    /// `radius` determines the size of the gradient relative to the view's bounds
-    ///
-    /// Default behavior depends on `radialGradentStartAttributes` but can be overridden for more complex radial gradients
-    public var radialGradientEndAttributes: RadialGradientAttributes? {
-        didSet {
-            setNeedsDisplay()
-        }
-    }
-
-	/// 1px borders will be drawn instead of 1pt borders. The default is `true`.
-	public var drawsThinBorders: Bool = true {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
-
-	/// The top border color. The default is `nil`.
-	public var topBorderColor: UIColor? {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
-
-	/// The right border color. The default is `nil`.
-	public var rightBorderColor: UIColor? {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
-
-	///  The bottom border color. The default is `nil`.
-	public var bottomBorderColor: UIColor? {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
-
-	/// The left border color. The default is `nil`.
-	public var leftBorderColor: UIColor? {
-		didSet {
-			setNeedsDisplay()
-		}
-	}
-
-
 	// MARK: - UIView
-
-	override public func drawRect(rect: CGRect) {
-		let context = UIGraphicsGetCurrentContext()
-		let size = bounds.size
-
-        // Gradient
-        if let gradient = gradient {
-            let options: CGGradientDrawingOptions = [.DrawsAfterEndLocation]
-            
-            switch mode {
-            case .Linear:
-                let startPoint = CGPointZero
-                let endPoint = direction == .Vertical ? CGPoint(x: 0, y: size.height) : CGPoint(x: size.width, y: 0)
-                CGContextDrawLinearGradient(context, gradient, startPoint, endPoint, options)
-            case .Radial:
-                let startOrigin = radialGradientStartAttributes.origin ?? CGPoint(x: 0.5, y: 0.5)
-                let startRadiusRatio = radialGradientStartAttributes.radius ?? 0.0
-                
-                let startCenter = CGPoint(x: bounds.width * startOrigin.x, y: bounds.height * startOrigin.y)
-                let startRadius: CGFloat = startRadiusRatio * min(bounds.width, bounds.height) / 2
-                
-                var endCenter = startCenter // set this to be the same as the start by default
-                var endRadius = min(size.width, size.height) / 2
-                
-                if let radialEndAttributes = radialGradientEndAttributes {
-                    if let endOrigin = radialEndAttributes.origin {
-                        endCenter = CGPoint(x: bounds.width * endOrigin.x, y: bounds.height * endOrigin.y)
-                    }
-                    if let endRadiusRatio = radialEndAttributes.radius {
-                        endRadius = endRadiusRatio * min(bounds.width, bounds.height) / 2
-                    }
-                }
-                
-                CGContextDrawRadialGradient(context, gradient, startCenter, startRadius, endCenter, endRadius, options)
-            }
-        }
-
-		let screen: UIScreen = window?.screen ?? UIScreen.mainScreen()
-		let borderWidth: CGFloat = drawsThinBorders ? 1.0 / screen.scale : 1.0
-
-		// Top border
-		if let color = topBorderColor {
-			CGContextSetFillColorWithColor(context, color.CGColor);
-			CGContextFillRect(context, CGRect(x: 0, y: 0, width: size.width, height: borderWidth))
-		}
-
-		let sideY: CGFloat = topBorderColor != nil ? borderWidth : 0
-		let sideHeight: CGFloat = size.height - sideY - (bottomBorderColor != nil ? borderWidth : 0)
-
-		// Right border
-		if let color = rightBorderColor {
-			CGContextSetFillColorWithColor(context, color.CGColor);
-			CGContextFillRect(context, CGRect(x: size.width - borderWidth, y: sideY, width: borderWidth, height: sideHeight))
-		}
-
-		// Bottom border
-		if let color = bottomBorderColor {
-			CGContextSetFillColorWithColor(context, color.CGColor);
-			CGContextFillRect(context, CGRect(x: 0, y: size.height - borderWidth, width: size.width, height: borderWidth))
-		}
-
-		// Left border
-		if let color = leftBorderColor {
-			CGContextSetFillColorWithColor(context, color.CGColor);
-			CGContextFillRect(context, CGRect(x: 0, y: sideY, width: borderWidth, height: sideHeight))
-		}
-	}
 
 	override public func tintColorDidChange() {
 		super.tintColorDidChange()
@@ -261,11 +171,9 @@ public class GradientView: UIView {
 				}
 
 				// Convert to RGB. There may be a more efficient way to do this.
-				var red: CGFloat = 0
-				var blue: CGFloat = 0
-				var green: CGFloat = 0
-				var alpha: CGFloat = 0
+				var red: CGFloat = 0, blue: CGFloat = 0, green: CGFloat = 0, alpha: CGFloat = 0
 				color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+                
 				return UIColor(red: red, green: green, blue: blue, alpha: alpha).CGColor as AnyObject!
 			}
 
@@ -287,9 +195,9 @@ public class GradientView: UIView {
 			if automaticallyDims {
 				if let colors = colors {
 					return colors.map {
-						var hue: CGFloat = 0
-						var brightness: CGFloat = 0
-						var alpha: CGFloat = 0
+						var hue: CGFloat = 0,
+						brightness: CGFloat = 0,
+						alpha: CGFloat = 0
 
 						$0.getHue(&hue, saturation: nil, brightness: &brightness, alpha: &alpha)
 
